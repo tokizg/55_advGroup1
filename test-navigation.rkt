@@ -1,4 +1,4 @@
-#lang reader "loadDrawer.rkt"
-直進
-T字路 右折
-直進
+#lang reader "loadraw.rkt"
+関数A
+関数B 42
+関数C hello world
