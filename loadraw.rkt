@@ -2,6 +2,8 @@
 
 (require br/datum)
 
+;; テスト
+
 ;; リーダ
 ;; 各行を (handle "関数名" 引数1 引数2 ...) に変換する
 (define (read-syntax path port)
