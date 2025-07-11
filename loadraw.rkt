@@ -9,24 +9,20 @@
 ;; 各行を (handle "関数名" 引数1 引数2 ...) に変換する
 (define (read-syntax path port)
   (define lines (port->lines port))
-  (define datums
-    (map (lambda (l)
-           (define parts (string-split l))
-           (format-datum
-             `(handle ,@parts)
-             #f))
-         lines))
+  (define datums (format-datum '(handle ~a) lines))
   (define mod `(module loadraw-mod "loadraw.rkt" ,@datums))
   (datum->syntax #f mod))
 (provide read-syntax)
 
 ;; エクスパンダ
-(define-macro (loadraw-module-begin body ...)
-  #'(#%module-begin body ...))
+(define-macro (loadraw-module-begin HANDLE_EXPR ...)
+  #'(#%module-begin HANDLE_EXPR ...))
 (provide (rename-out [loadraw-module-begin #%module-begin]))
 
+
+
 ;; 関数名と引数を読んで、適当にRacketの式へ変換する
-(define (handle fn:id . args)
+(define (handle fn . args)
   (displayln (cons fn args)) ; とりあえず読んだモノを表示しておく
   (case fn
     [(関数A) (when (null? args) (FuncA))]
