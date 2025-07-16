@@ -1,45 +1,32 @@
 #lang br/quicklang
 
-(require br/datum)
-
-;; テスト
-;; テスト2
-
-;; リーダ
-;; 各行を (handle "関数名" 引数1 引数2 ...) に変換する
 (define (read-syntax path port)
-  (define lines (port->lines port))
-  (define datums (format-datum '(handle ~a) lines))
-  (define mod `(module loadraw-mod "loadraw.rkt" ,@datums))
-  (datum->syntax #f mod))
+  (define src-lines (port->lines port))
+  (define src-datums (format-datums '~a src-lines))
+  (define module-datum `(module funstacker-mod "loadraw.rkt"
+                          (handle-args ,@src-datums)))
+  (datum->syntax #f module-datum))
 (provide read-syntax)
 
-;; エクスパンダ
-(define-macro (loadraw-module-begin HANDLE_EXPR ...)
-  #'(#%module-begin HANDLE_EXPR ...))
-(provide (rename-out [loadraw-module-begin #%module-begin]))
+(define-macro (funstacker-module-begin HANDLE-ARGS-EXPR)
+  #'(#%module-begin
+     (display (first HANDLE-ARGS-EXPR))))
+(provide (rename-out [funstacker-module-begin #%module-begin]))
 
+(define (handle-args . args)
+  (for/fold ([stack-acc empty])
+            ([arg (in-list args)]
+             #:unless (void? arg))
+    (cond
+      [(number? arg) (cons arg stack-acc)]
+      [(or (equal? 関数A arg) (equal? 関数B arg))
+       arg])))
+(provide handle-args)
 
+(provide + *)
 
-;; 関数名と引数を読んで、適当にRacketの式へ変換する
-(define (handle fn . args)
-  (displayln (cons fn args)) ; とりあえず読んだモノを表示しておく
-  (case fn
-    [(関数A) (when (null? args) (FuncA))]
-    [(関数B) (when (= (length args) 1) (FuncB (first args)))]
-    [(関数C) (when (= (length args) 2) (FuncC (first args) (second args)))]
-    [else (error 'handle "Unknown function or wrong args" fn args)]))
-
-(provide handle FuncA FuncB FuncC)
-
-;; 仮実装
-;; 関数名と引数を表示する
-(define (FuncA)
-  (displayln 'FuncA)
-  (void))
-(define (FuncB x)
-  (displayln (list 'FuncB x))
-  (void))
-(define (FuncC x y)
-  (displayln (list 'FuncC x y))
-  (void))
+(define (関数A a b)
+    (+ a b))
+(define (関数B a b)
+  (* a b))
+(provide 関数A 関数B)
