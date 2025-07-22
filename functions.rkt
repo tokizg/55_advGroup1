@@ -2,16 +2,14 @@
 
 (require 2htdp/image)
 (require racket/math)
-(provide save-image)
 
 ;;===== 定数・基本関数定義 =====;;
-;; 画像生成 ;;
 (define road-width 50); 道幅
-(define frame-width 2); 道の脇の枠線の幅
+(define frame-width 1); 道の脇の枠線の幅
 (define meter 2); 距離単位(m)の画素数
-(define road-color "gray"); 道の色
-(define frame-color "green"); 枠の色
-(define background-color "moccasin"); 背景色
+(define road-color "Light Steel Blue"); 道の色
+(define frame-color "Gray"); 枠の色
+(define background-color "White Smoke"); 背景色
 (define margin 50); 余白
 
 (define (make-straight-road-img len/m); 直進路の画像生成 
@@ -26,14 +24,14 @@
 ;;==== データ型 ====;;
 (define (set-state x y dir map-img)
   (cons (cons (cons x y) ; 座標(image座標系)
-              dir); 方向(0~359)
-        map-img)); マップimage
-;; (define (set-state-xy xy dir map-img);座標をpairで受け取るバージョン
+              dir)       ; 方向(0~359)
+        map-img))        ; マップimage
+;; (define (set-state-xy xy dir map-img); 座標をpairで受け取るバージョン
 ;;   (cons (cons xy 
 ;;               dir)
 ;;         map-img))
 
-(define init-state (set-state 0 0 0 empty-image))
+(define init-state (set-state 0 0 270 empty-image)); 右向きスタート
 
 (define (current-pos state) (caar state))
 (define (current-x state) (caaar state))
@@ -133,6 +131,7 @@
 ;;==== 最上級関数 ====;;
 ;; ソースコードに書き込む関数。エイリアスの定義とprovideをする。
 
+;; 直進
 (define (go-straight dist/m state)
   (let* ([pos (current-pos state)]
          [x (car pos)]
@@ -140,12 +139,13 @@
          [dir (current-dir state)]
          [map-img (current-map-img state)]
          [pos-offsets-move (amounts-of-movement dist/m dir)]
-         [add-image-result (add-image/align (make-straight-road-img dist/m)
-                                (+ x (/ (car pos-offsets-move) 2))
-                                (+ y (/ (cdr pos-offsets-move) 2))
-                                "center"
-                                "center"
-                                map-img)]
+         [add-image-result (add-image/align
+                            (rotate dir (make-straight-road-img dist/m))
+                            (+ x (/ (car pos-offsets-move) 2))
+                            (+ y (/ (cdr pos-offsets-move) 2))
+                            "center"
+                            "center"
+                            map-img)]
          [next-map (car add-image-result)]
          [pos-offsets-add-image (cdr add-image-result)])
     ;; (for-each displayln (list "move-offsets"
@@ -161,12 +161,13 @@
 
 
 
-;; (define (test)
-;;   (define step1 (go-straight 100 init-state))
-;;   (define step2 (go-straight 150 step1))
-;;   (for-each displayln (list "step1: (go-straight 100 init-state)"
-;;                             "step2: (go-straight 150 (go-straight 100 init-state))"
-;;                             "↓step1とstep2を評価")))
+;;==== テスト ====;;
+(define (test1) (直進 100 (set-state 0 0 45 empty-image)))
+(define (test2) (直進 50 (test1)))
 
 
-(provide current-map-img init-state)
+
+;;==== リーダ内で追加する処理に必要な識別子 ====;;
+(provide save-image
+         current-map-img
+         init-state)
