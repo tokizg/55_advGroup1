@@ -129,6 +129,29 @@
 
 
 
+(define (make-dirs-road-img dirs state)
+   (let* ([pos (current-pos state)]
+         [x (car pos)]
+         [y (cdr pos)]
+         [dir (current-dir state)]
+         [map-img (current-map-img state)]
+         [pos-offsets-move (amounts-of-movement intersection-length dir)])
+     (define (draw-dir-road arg-dir arg-state)
+       (define add-image-result
+         (add-image/align (rotate arg-dir (make-straight-road-img intersection-length))
+                          (+ x (/ (car pos-offsets-move) 2));;ここを場合分け
+                          (+ y (/ (cdr pos-offsets-move) 2))
+                          "center"
+                          "center"
+                          (current-map-img arg-state)))
+       (printf "add-image-result: ~a\n" add-image-result)
+       (set-state (+ x (cadr add-image-result))
+                  (+ y (cddr add-image-result))
+                  dir
+                  (car add-image-result)))
+     (foldl draw-dir-road state dirs)))
+
+
 ;;==== 最上級関数 ====;;
 ;; ソースコードに書き込む関数。エイリアスの定義とprovideをする。
 
@@ -169,29 +192,29 @@
 ;; カーブ　右
 ;;
 ;;
-(define (intersec/curve dir dir-list)
-  (let* ([pos (current-pos state)]
-         [x (car pos)]
-         [y (cdr pos)]
-         [dir (current-dir state)]
-         [map-img (current-map-img state)]
-         [pos-offsets-move (amounts-of-movement intersection-length dir)]
-         [add-image-result (for/fold ([acc #f])
-                                     (dir-list)
-                             (add-image/align (car acc) (+ x (car (cdr acc))) (+ y (cdr (cdr acc))) "center" "center" map-img))]
-         [next-map (car add-image-result)]
-         [pos-offsets-add-image (cdr add-image-result)])
-    (set-state (+ x (car pos-offsets-move) (car pos-offsets-add-image))
-               (+ y (car pos-offsets-move) (car pos-offsets-add-image))
-               dir
-               next-map))
-(define 交差点 intersec/curve)
-(define (十字路 進行方向)
-  (intersec/curve 進行方向  (list 左 前 右)))
-(define (T字路 進行方向)
-  (intersec/curve 進行方向 (list 右 左 )))
-(define (カーブ 進行方向)
-  (intersec/curve 進行方向 (list 進行方向)))
+;; (define (intersec/curve dir dir-list state)
+;;   (let* ([pos (current-pos state)]
+;;          [x (car pos)]
+;;          [y (cdr pos)]
+;;          [dir (current-dir state)]
+;;          [map-img (current-map-img state)]
+;;          [add-image-result (for/fold ([acc #f])
+;;                                      (dir-list)
+;;                              (add-image/align (car acc) (+ x (car (cdr acc))) (+ y (cdr (cdr acc))) "center" "center" map-img))]
+;;          [next-map (car add-image-result)]
+;;          [pos-offsets-add-image (cdr add-image-result)])
+;;     (set-state (+ x (car pos-offsets-add-image))
+;;                (+ y (car pos-offsets-add-image))
+;;                dir
+;;                next-map)))
+;; (define 交差点 intersec/curve)
+;; (define (十字路 進行方向 state)
+;;   (intersec/curve 進行方向  (list 左 前 右)) state)
+;; (define (T字路 進行方向 state)
+;;   (intersec/curve 進行方向 (list 右 左 )))
+;; (define (カーブ 進行方向)
+;;   (intersec/curve 進行方向 (list 進行方向)))
+
 
 
 
