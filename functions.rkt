@@ -6,6 +6,7 @@
 ;;===== 定数・基本関数定義 =====;;
 (define road-width 50); 道幅
 (define frame-width 1); 道の脇の枠線の幅
+(define intersection-length 50);交差点を描くときに伸ばす距離
 (define meter 2); 距離単位(m)の画素数
 (define road-color "Light Steel Blue"); 道の色
 (define frame-color "Gray"); 枠の色
@@ -132,6 +133,7 @@
 ;; ソースコードに書き込む関数。エイリアスの定義とprovideをする。
 
 ;; 直進
+
 (define (go-straight dist/m state)
   (let* ([pos (current-pos state)]
          [x (car pos)]
@@ -168,9 +170,21 @@
 ;;
 ;;
 (define (intersec/curve dir dir-list)
-  (
-   ;; Implement here
-   ))
+  (let* ([pos (current-pos state)]
+         [x (car pos)]
+         [y (cdr pos)]
+         [dir (current-dir state)]
+         [map-img (current-map-img state)]
+         [pos-offsets-move (amounts-of-movement intersection-length dir)]
+         [add-image-result (for/fold ([acc #f])
+                                     (dir-list)
+                             (add-image/align (car acc) (+ x (car (cdr acc))) (+ y (cdr (cdr acc))) "center" "center" map-img))]
+         [next-map (car add-image-result)]
+         [pos-offsets-add-image (cdr add-image-result)])
+    (set-state (+ x (car pos-offsets-move) (car pos-offsets-add-image))
+               (+ y (car pos-offsets-move) (car pos-offsets-add-image))
+               dir
+               next-map))
 (define 交差点 intersec/curve)
 (define (十字路 進行方向)
   (intersec/curve 進行方向  (list 左 前 右)))
