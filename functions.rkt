@@ -159,6 +159,26 @@
 (define 直進 go-straight)
 (provide 直進)
 
+;; 交差点, カーブ
+;;
+;; 交差点　右　左　直進
+;; 
+;;
+;; カーブ　右
+;;
+;;
+(define (intersec/curve dir dir-list)
+  (
+   ;; Implement here
+   ))
+(define 交差点 intersec/curve)
+(define (十字路 進行方向)
+  (intersec/curve 進行方向  (list 左 前 右)))
+(define (T字路 進行方向)
+  (intersec/curve 進行方向 (list 右 左 )))
+(define (カーブ 進行方向)
+  (intersec/curve 進行方向 (list 進行方向)))
+
 
 
 ;;==== テスト ====;;
