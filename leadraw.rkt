@@ -8,9 +8,11 @@
   (define module-datum `(module leadraw-mod br
                           (require "functions.rkt")
                           (define result-state ,nested-s-exp-form-src)
-                          (save-image (get-map-image result-state)
+                          (define result-map-added-margin
+                            (add-margin (get-map-image result-state)))
+                          (save-image result-map-added-margin
                                       "leadraw-out.png")
-                          (get-map-image result-state)))
+                          result-map-added-margin))
   ;; 変換確認用
   ;; (printf "ソースコード:\n ~a\n" src-lines)
   ;; (printf "変換後(ソースに対応する部分のみ):\n~a\n" nested-s-exp-form-src)
