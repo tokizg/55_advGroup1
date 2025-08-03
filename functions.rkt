@@ -25,6 +25,8 @@
 (define INTERSEC-LENGTH ROAD-WIDTH)
 ;; 距離単位あたりの画素数
 (define METER 2)
+;; 余白の太さ
+(define MARGIN 50)
 
 
 ;; -- 色 -- ;;
@@ -34,11 +36,11 @@
 (define FRAME-COLOR "Dark Gray")
 ;; 背景色
 (define BACKGROUND-COLOR "White Smoke")
-;; 余白の太さ #|最終結果のmap-imgに追加したい|#
-(define MARGIN 50)
 
 
-;; ---- イメージ ---- ;;
+;; -- イメージ -- ;;
+;; 曲がり角の枠線を滑らかに描くためのイメージ。
+;; 大変との距離がROAD-WIDTH + FRAME-WIDTHとなるような八角形によって実装。
 (define CORNER-IMAGE
   (let ([octagon-side-length (* (+ ROAD-WIDTH FRAME-WIDTH) (- (sqrt 2) 1))])
     (overlay (regular-polygon octagon-side-length
@@ -51,18 +53,19 @@
                               ROAD-COLOR))))
 
 
-;; ---- 方向 ---- ;;
+;; -- 方向 -- ;;
 #|
 2つの用途で方向定数を使用する。
 仮引数名などで方向を扱う際はabsかrelかを明示する。
 
-・絶対方向の指定(absolute)
-imageライブラリの関数に使用するときは
+abs：絶対方向の指定(absolute)
+--imageライブラリの関数に使用するときはこれを使用する。
+--画像上向きを基準(FRONT=0)として扱う。
 
-・方向の相対的な変化量(relative)
-例えばポインタ方向を現在の方向から見て右向きに更新する際には、
-(+ (get-abs-dir state) RIGHT)
-のようにする。
+rel：方向の相対的な変化量(relative)
+--例えばポインタ方向を現在の方向から見て右向きに更新する際には、
+--(+ 現在方向 RIGHT)
+--のようにする。
 |#
 (define FRONT 0)
 (define FRONT-LEFT 45)
@@ -73,7 +76,7 @@ imageライブラリの関数に使用するときは
 (define RIGHT 270)
 (define FRONT-RIGHT 315)
 
-;; ---- リーダ用エイリアス定義・purovide ---- ;;
+;; -- リーダ用エイリアス定義・purovide -- ;;
 (define 前 FRONT)
 (define 左前 FRONT-LEFT)
 (define 左 LEFT)
@@ -100,7 +103,7 @@ imageライブラリの関数に使用するときは
 ** 各要素 **
 x, y
 --ポインターの座標。
---image座標系で表現(原点：画像左上、x軸方向：右、y軸方向：下)
+--image座標系で表現。(原点：画像左上、x軸方向：右、y軸方向：下)
 
 abs-dir(abstruct-direction)
 --道を描画する方向。ポインターの絶対方向。
@@ -118,7 +121,7 @@ map-image
 ;; 右向きで開始。empty-imageはimageライブラリ内の定数。
 (define INIT-STATE (set-state 0 0 0 empty-image))
 
-;; 各要素のセレクタ ;;
+;; 各要素のセレクタ
 (define (get-x state) (caaar state))
 (define (get-y state) (cdaar state))
 (define (get-abs-dir state) (cdar state))
@@ -166,7 +169,7 @@ map-image
 
 ;; scene上の(x,y)位置に、imageのx-placeとy-placeを合わせて配置した画像を生成する。
 ;; imageライブラリのplace-image/alignを拡張した関数であり、引数を同じように指定できる。
-;; place-image/alignとの違いは、sceneのサイズを超えた範囲への描画があった際に、
+;; place-image/alignとの違いとしては、sceneのサイズを超えた範囲への描画があった際に、
 ;; 画像サイズを拡大したイメージを生成する。
 ;; さらに、オプション引数として、引数の末尾に #:with-expansions? #t を追加すると、
 ;; 各方向へのイメージ拡大量も付したリストで返す。
@@ -180,7 +183,8 @@ map-image
   (define-values (top-expansion bottom-expansion)
     (axis-excesses-over-scene
      (image-height additional-image) y y-place (image-height scene)))
-  ;; 配置後image
+  ;; 配置後image。
+  ;; 必要なだけ拡大した背景を作り、その上に元画像、さらにその上に追加する画像を配置。
   (define added-image
     (place-image/align additional-image
                        (+ x left-expansion)
@@ -205,20 +209,20 @@ map-image
             left-expansion right-expansion top-expansion bottom-expansion)
       added-image))
 ;; add-image/alignテスト用関数
-(define (test-add-image)
-  (add-image/align (rectangle 50 50 "solid" "green")
-                   25 0
-                   "center" "bottom"
-                   (add-image/align (rectangle 50 100 "solid" "blue")
-                                    25 0
-                                    "center" "bottom"
-                                    (rectangle 50 50 "solid" "red"))))
-(define (test-add-image-with-expansions)
-   (add-image/align (rectangle 80 50 "solid" "green")
-                   -30 -20
-                   "right" "top"
-                   (rectangle 50 100 "solid" "blue")
-                   #:with-expansions? #t))
+;; (define (test-add-image)
+;;   (add-image/align (rectangle 50 50 "solid" "green")
+;;                    25 0
+;;                    "center" "bottom"
+;;                    (add-image/align (rectangle 50 100 "solid" "blue")
+;;                                     25 0
+;;                                     "center" "bottom"
+;;                                     (rectangle 50 50 "solid" "red"))))
+;; (define (test-add-image-with-expansions)
+;;    (add-image/align (rectangle 80 50 "solid" "green")
+;;                    -30 -20
+;;                    "right" "top"
+;;                    (rectangle 50 100 "solid" "blue")
+;;                    #:with-expansions? #t))
 
 
 ;; 移動の距離と絶対角度から、xとyの変化量のペアを求める。極座標→直交座標。
@@ -272,47 +276,51 @@ map-image
 (define (draw-dir-road target-rel-dir dist/m state
                        #:move-pointer? [move-pointer? #f]
                        #:with-frame? [with-frame? #t])
-  (let* ([x (get-x state)]
-         [y (get-y state)]
-         [dir (get-abs-dir state)]
-         [map-image (get-map-image state)]
-         [target-abs-dir (rotate-dir dir target-rel-dir)]
-         
-         [pos-move-dists (dist+dir->xy dist/m target-abs-dir)]
-         [x-move-dist (car pos-move-dists)]
-         [y-move-dist (cdr pos-move-dists)]
-         
+  (let* ([cur-x (get-x state)]
+         [cur-y (get-y state)]
+         [cur-abs-dir (get-abs-dir state)]
+         [cur-map-image (get-map-image state)]
+         ;; 道を描画する方向。
+         [target-abs-dir (rotate-dir cur-abs-dir target-rel-dir)]
+         ;; 道の始点から終点までの距離のx, y成分。
+         [segment-dists (dist+dir->xy dist/m target-abs-dir)]
+         [segment-x-dist (car segment-dists)]
+         [segment-y-dist (cdr segment-dists)]
+         ;; 道を描画したmap-imageと、描画の際のオフセット。
+         ;; x,y座標指定で実現するため、道の中央を基準に指定。
          [drawn-map-image-with-offsets
           (add-image/align (rotate target-abs-dir
                                    (make-straight-road-image
                                     dist/m
                                     #:with-frame? with-frame?))
-                           (+ x (/ x-move-dist 2))
-                           (+ y (/ y-move-dist 2))
+                           (+ cur-x (/ segment-x-dist 2))
+                           (+ cur-y (/ segment-y-dist 2))
                            "center"
                            "center"
-                           map-image
+                           cur-map-image
                            #:with-expansions? #t)]
          [drawn-map (first drawn-map-image-with-offsets)]
          [map-origin-x-offset (second drawn-map-image-with-offsets)]
          [map-origin-y-offset (fourth drawn-map-image-with-offsets)])
     ;; (for-each displayln (list target-abs-dir
-    ;;                           x-move-dist
-    ;;                           y-move-dist
+    ;;                           segment-x-dist
+    ;;                           segment-y-dist
     ;;                           map-origin-x-offset
     ;;                           map-origin-y-offset))
     (if move-pointer?
-        (set-state (+ x x-move-dist map-origin-x-offset)
-                   (+ y y-move-dist map-origin-y-offset)
+        ;; 道の先へ移動・方向転換してstate更新。
+        (set-state (+ cur-x segment-x-dist map-origin-x-offset)
+                   (+ cur-y segment-y-dist map-origin-y-offset)
                    target-abs-dir
                    drawn-map)
-        (set-state (+ x map-origin-x-offset)
-                   (+ y map-origin-y-offset)
-                   dir
+        ;; 道の先へ移動・方向転換しないでstate更新。
+        (set-state (+ cur-x map-origin-x-offset)
+                   (+ cur-y map-origin-y-offset)
+                   cur-abs-dir
                    drawn-map))))
 
 
-;; 角を滑らかにし、間を埋めるための図形(コーナー)を現在位置に描画。
+;; 角を滑らかにし、道と道の間を埋めるための図形(コーナー)を現在位置に描画。
 (define (draw-corner state)
   (define map-image-added-corner
     (add-image/align CORNER-IMAGE
@@ -328,16 +336,26 @@ map-image
              (first map-image-added-corner)))
 
 
+;; map-imageの外周に余白を追加
+(define (add-margin map-image)
+    (overlay map-image
+             (empty-scene (+ (image-width map-image) MARGIN)
+                          (+ (image-height map-image) MARGIN)
+                          BACKGROUND-COLOR)))
 
 
-;;==== 上級描画関数 ====;;
-;; ソースコードで書く関数。エイリアスの定義とprovideをする。
 
-;; 直進
+
+;;==== 高級描画関数 ====;;
+;; ソースコードから変換される関数。
+;; エイリアス・シンタックスシュガーの定義とprovideを行う。
+
+;; 直進描画
+;; 指定距離分前方に道を描画し、その先へ移動する。
 (define (go-straight dist/m state)
   (draw-dir-road FRONT dist/m state #:move-pointer? #t))
 
-;; 交差点とカーブ
+;; 交差点とカーブ描画
 (define (intersec-or-curve travel-rel-dir branching-rel-dirs state)
   (let* (;; 指定方向すべてに道を生成。
          [state-drawn-dirs-road
@@ -345,7 +363,7 @@ map-image
            (lambda (rel-dir state)
              (draw-dir-road rel-dir INTERSEC-LENGTH state))
            state
-           branching-rel-dirs)]
+           (cons BACK branching-rel-dirs))]
          ;; 現在位置にコーナーを生成。
          [state-drawn-corner
           (draw-corner state-drawn-dirs-road)]
@@ -363,52 +381,23 @@ map-image
     moved-state))
 
 
-;; ---- エイリアス定義・provide ---- ;;
+;; ---- エイリアス・シンタックスシュガー ---- ;;
 (define 直進 go-straight)
 (define 交差点 intersec-or-curve)
+(provide 直進
+         交差点)
+
+
 (define (カーブ travel-rel-dir state)
   (intersec-or-curve travel-rel-dir (list travel-rel-dir) state))
-
-(provide 直進
-         交差点
-         カーブ)
-
-;; シンタックスシュガーたち
 (define (T字路 travel-rel-dir state)
   (交差点 travel-rel-dir (list 左 右) state))
 (define (十字路 travel-rel-dir state)
   (交差点 travel-rel-dir (list 左 前 右) state))
 
-(provide T字路
+(provide カーブ
+         T字路
          十字路)
-
-
-
-;;==== テスト ====;;
-(define (test1)
-  (go-straight 100 INIT-STATE))
-(define (test2)
-  (intersec-or-curve RIGHT (list LEFT RIGHT FRONT) (test1)))
-(define (test3)
-  (go-straight 130 (test2)))
-(define (test4)
-  (intersec-or-curve BACK-RIGHT (list BACK-RIGHT) (test3)))
-(define (test5)
-  (go-straight 30 (test4)))
-(define (test6)
-  (intersec-or-curve BACK-RIGHT
-                     (list FRONT FRONT-LEFT LEFT BACK-LEFT
-                           BACK-RIGHT RIGHT FRONT-RIGHT)
-                     (test5)))
-(define (test7)
-  (go-straight 120 (test6)))
-(define (test8)
-  (intersec-or-curve RIGHT (list FRONT-RIGHT RIGHT) (test7)))
-(define (test9)
-  (go-straight 100 (test8)))
-
-(define (test);; まとめて評価。キモ地図が出力される。
-  (values (test1) (test2) (test3) (test4) (test5) (test6) (test7) (test8) (test9)))
 
 
 
@@ -416,4 +405,35 @@ map-image
 ;;==== リーダ内で追加する処理に必要な識別子 ====;;
 (provide save-image
          get-map-image
-         INIT-STATE)
+         INIT-STATE
+         add-margin)
+
+
+
+
+;;==== テスト ====;;
+;; (define (test1)
+;;   (go-straight 100 INIT-STATE))
+;; (define (test2)
+;;   (intersec-or-curve RIGHT (list LEFT RIGHT FRONT) (test1)))
+;; (define (test3)
+;;   (go-straight 130 (test2)))
+;; (define (test4)
+;;   (intersec-or-curve BACK-RIGHT (list BACK-RIGHT) (test3)))
+;; (define (test5)
+;;   (go-straight 30 (test4)))
+;; (define (test6)
+;;   (intersec-or-curve BACK-RIGHT
+;;                      (list FRONT FRONT-LEFT LEFT BACK-LEFT
+;;                            BACK-RIGHT RIGHT FRONT-RIGHT)
+;;                      (test5)))
+;; (define (test7)
+;;   (go-straight 120 (test6)))
+;; (define (test8)
+;;   (intersec-or-curve RIGHT (list FRONT-RIGHT RIGHT) (test7)))
+;; (define (test9)
+;;   (go-straight 100 (test8)))
+
+;; (define (test);; まとめて評価。キモ地図が出力される。
+;;   (values (test1) (test2) (test3) (test4) (test5) (test6) (test7) (test8) (test9)))
+
