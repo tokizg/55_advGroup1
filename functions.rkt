@@ -130,78 +130,80 @@ map-image
 
 ;; ==== リファレンス関数 ==== ;;
 
-;; 方向補正関数。
+;; 方向転換関数。
 ;; 方向の値が0~359の間の値を取るようにする。
+;; (rotate-dir 315 90)
+;; >45
 (define (rotate-dir abs-dir rel-dir)
   (modulo (+ abs-dir rel-dir) 360))
 
 
 ;; 最小を0として範囲を調整する関数。
 ;; 返り値：num
+;; (clamp-min-zero -20)
+;; >0
+;; (clamp-min-zero 50)
+;; >50
 (define (clamp-min-zero n) (if (> n 0) n 0))
 
 
-;; additional-imageの[x-place,y-place]位置をsceneの(x,y)座標に合わせて追加するときの
-;; sceneの範囲内から左右上下それぞれの方向の超過ピクセル数をリスト'(左 右 上 下)で返す。
-;; 返り値：'(num num num num)
-(define (excesses-over-scene additional-image x y x-place y-place scene)  
-  ;; x軸とy軸の共通処理をまとめるための関数。
-  ;; x軸方向もしくはy軸方向について引数を受け取り、
-  ;; その座標軸の両方向の超過量のリスト'(左 右)もしくは'(上 下)を返す。
-  ;; 返り値：'(num num)
-  (define (excesses-over-scene/axis image-size axis-pos axis-place scene-size)
+;; scene上にimageを配置することを想定し、引数として、同じ座標軸方向の
+;; imageの大きさ、座標pos、配置オプションplace、sceneの大きさ４つを受け取ると、
+;; imageがどれだけsceneの両方向それぞれにどれだけはみ出るかを2値で返す。
+  (define (axis-excesses-over-scene image-size axis-pos axis-place scene-size)
     (cond [(or (string=? "left" axis-place) (string=? "top" axis-place))
-           (list (clamp-min-zero (- axis-pos));; バグ修正済
+           (values (clamp-min-zero (- axis-pos))
                  (clamp-min-zero (- (+ axis-pos image-size) scene-size)))]
+          
           [(string=? "center" axis-place)
-           (list (clamp-min-zero (- (* image-size (/ 1 2)) axis-pos))
-                 (clamp-min-zero (- (+ axis-pos (* image-size (/ 1 2))) scene-size)))]
+           (values (clamp-min-zero (- (* image-size (/ 1 2)) axis-pos))
+                 (clamp-min-zero (- (+ axis-pos (* image-size (/ 1 2)))
+                                    scene-size)))]
           [(or (string=? "right" axis-place) (string=? "bottom" axis-place))
-           (list (clamp-min-zero (- image-size axis-pos));; バグ修正済         
+           (values (clamp-min-zero (- image-size axis-pos))         
                  (clamp-min-zero (- axis-pos scene-size)))]))
-  ;; eccess-over-scene本体
-  (append (excesses-over-scene/axis
-           (image-width additional-image) x x-place (image-width scene))
-          (excesses-over-scene/axis
-           (image-height additional-image) y y-place (image-height scene))))
 
 
-;; scene上の(x,y)位置にimageのx-placeとy-placeを合うように画像を生成する。
+;; scene上の(x,y)位置に、imageのx-placeとy-placeを合わせて配置した画像を生成する。
 ;; imageライブラリのplace-image/alignを拡張した関数であり、引数を同じように指定できる。
 ;; place-image/alignとの違いは、sceneのサイズを超えた範囲への描画があった際に、
 ;; 画像サイズを拡大したイメージを生成する。
 ;; さらに、オプション引数として、引数の末尾に #:with-expansions? #t を追加すると、
-;; 各方向にどれだけ拡大したかの値もリストで返す。
+;; 各方向へのイメージ拡大量も付したリストで返す。
+;; 返り値：image or '(image 左 右 上 下)※各拡大量
 (define (add-image/align additional-image x y x-place y-place scene
                          #:with-expansions? [with-expansions? #f])
-  (let* ([expansions
-          (excesses-over-scene additional-image x y x-place y-place scene)]
-         [left-expansion (first expansions)]
-         [right-expansion (second expansions)]
-         [top-expansion (third expansions)]
-         [bottom-expansion (fourth expansions)])
-    (define added-image
-      (place-image/align additional-image
-                         (+ x left-expansion)
-                         (+ y top-expansion)
-                         x-place
-                         y-place
-                         (place-image/align scene
-                                            left-expansion
-                                            top-expansion
-                                            "left"
-                                            "top"
-                                            (rectangle (+ (image-width scene)
-                                                          left-expansion
-                                                          right-expansion)
-                                                       (+ (image-height scene)
-                                                          top-expansion
-                                                          bottom-expansion)
-                                                       "solid"
-                                                       BACKGROUND-COLOR))))
-    (if with-expansions?
-        (cons added-image expansions)
-        added-image)))
+  ;; 各方向のイメージサイズ増分
+  (define-values (left-expansion right-expansion)
+    (axis-excesses-over-scene
+     (image-width additional-image) x x-place (image-width scene)))
+  (define-values (top-expansion bottom-expansion)
+    (axis-excesses-over-scene
+     (image-height additional-image) y y-place (image-height scene)))
+  ;; 配置後image
+  (define added-image
+    (place-image/align additional-image
+                       (+ x left-expansion)
+                       (+ y top-expansion)
+                       x-place
+                       y-place
+                       (place-image/align scene
+                                          left-expansion
+                                          top-expansion
+                                          "left"
+                                          "top"
+                                          (rectangle (+ (image-width scene)
+                                                        left-expansion
+                                                        right-expansion)
+                                                     (+ (image-height scene)
+                                                        top-expansion
+                                                        bottom-expansion)
+                                                     "solid"
+                                                     BACKGROUND-COLOR))))
+  (if with-expansions?
+      (list added-image
+            left-expansion right-expansion top-expansion bottom-expansion)
+      added-image))
 ;; add-image/alignテスト用関数
 (define (test-add-image)
   (add-image/align (rectangle 50 50 "solid" "green")
@@ -219,7 +221,11 @@ map-image
                    #:with-expansions? #t))
 
 
-;; 長さと角度からx成分とy成分のペアを求める。ベクトルの分解。
+;; 移動の距離と絶対角度から、xとyの変化量のペアを求める。極座標→直交座標。
+;; (dist+dir->xy 10 FRONT)
+;; >(0 . -10)
+;; (dist+dir->xy 10 LEFT)
+;; >(-10 . 0)
 (define (dist+dir->xy dist/m abs-dir)
   (let ([cos-pi/4 (cos (/ pi 4))]
         [dist-m (* dist/m METER)])
@@ -242,9 +248,9 @@ map-image
 
 
 ;; ==== 低級描画関数 ==== ;;
-;; 上向きにまっすぐな道の画像を生成。
+;; 上向きにまっすぐな道の画像を指定距離の長さで生成。
 ;; オプション引数を#fで指定すると枠なしの道を生成する。指定しなければ枠あり。
-;; (長さ) -> (道イメージ) 
+;; 返り値：image
 (define (make-straight-road-image len/m ;; 引数の単位はメートル
                                   #:with-frame? [with-frame? #t]) 
   (if with-frame?
@@ -254,13 +260,15 @@ map-image
              (rectangle FRAME-WIDTH (* len/m METER) "solid" FRAME-COLOR)])
         ;; 枠 + 道 + 枠で構成
         (beside frame-image road-image frame-image))
+      ;; 道単体(枠無し)で生成
       (rectangle ROAD-WIDTH (* len/m METER) "solid" ROAD-COLOR)))
 
 
-;; 指定された方向に道を生成。
+;; 指定された方向にまっすぐな道を描画。
 ;; オプション引数を２つ指定できる。
-;; move-pointer?：その方向に向きを変えて移動するかどうか。
+;; move-pointer?：ポインターをその方向に向きを変え、座標を移動するかどうか。
 ;; with-frame?：生成する道を枠付きで生成するかどうか。
+;; 初期値（指定無し）ではポインターを更新せず、枠付きの道を描画する。
 (define (draw-dir-road target-rel-dir dist/m state
                        #:move-pointer? [move-pointer? #f]
                        #:with-frame? [with-frame? #t])
@@ -304,20 +312,20 @@ map-image
                    drawn-map))))
 
 
-;; 角を滑らかにし、間を埋めるための図形(コーナー)を現在位置に生成。
+;; 角を滑らかにし、間を埋めるための図形(コーナー)を現在位置に描画。
 (define (draw-corner state)
-  (let ([map-image-added-corner
-         (add-image/align CORNER-IMAGE
-                          (get-x state)
-                          (get-y state)
-                          "center"
-                          "center"
-                          (get-map-image state)
-                          #:with-expansions? #t)])
-    (set-state (+ (get-x state) (second map-image-added-corner))
-               (+ (get-y state) (fourth map-image-added-corner))
-               (get-abs-dir state)
-               (first map-image-added-corner))))
+  (define map-image-added-corner
+    (add-image/align CORNER-IMAGE
+                     (get-x state)
+                     (get-y state)
+                     "center"
+                     "center"
+                     (get-map-image state)
+                     #:with-expansions? #t))
+  (set-state (+ (get-x state) (second map-image-added-corner))
+             (+ (get-y state) (fourth map-image-added-corner))
+             (get-abs-dir state)
+             (first map-image-added-corner)))
 
 
 
