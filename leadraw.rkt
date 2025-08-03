@@ -1,6 +1,6 @@
 #lang br/quicklang
 
-;;リーダ
+;; ==== リーダ ==== ;;
 (define (read-syntax path port)
   (define src-lines (port->lines port))
   (define nested-s-exp-form-src
@@ -11,19 +11,25 @@
                           (save-image (get-map-image result-state)
                                       "leadraw-out.png")
                           (get-map-image result-state)))
-  ;; (printf "ソースコード: ~a\n" src-lines)
+  ;; 変換確認用
+  ;; (printf "ソースコード:\n ~a\n" src-lines)
   ;; (printf "変換後(ソースに対応する部分のみ):\n~a\n" nested-s-exp-form-src)
-  ;; (printf "module-datum: ~a" module-datum)
+  ;; (printf "module-datum:\n ~a" module-datum)
+
   (datum->syntax #f module-datum))
 (provide read-syntax)
 
 
-;;====文字列変換関数====;;
+;; ==== 文字列変換関数 ==== ;;
 ;; fw: 全角full-width, hw: 半角half-width
 
+;; 全角スペースから半角スペースへ変換。
+;; "　　" -> "  "
 (define (fw->hw/space str)
   (regexp-replace* #px"　+" str " " ))
 
+;; 全角数字から半角数字へ変換。
+;; "１００" -> "100"
 (define (fw->hw/number str)
   (define fw-hw-digit-hash
     (for/hash ([fw (in-range (char->integer #\０) (add1 (char->integer #\９)))]
@@ -34,30 +40,49 @@
                 (hash-ref fw-hw-digit-hash (string c) (lambda () (string c))))
               (string->list str))))
 
-(define (fw-meters->num str)
-  (regexp-replace* #px"([0-9]+)ｍ" str
-                   (lambda (all-matching group-matching)
+;; メートル表記を数字のみへ変換。
+;; "10m" -> "10"
+;; "20ｍ" -> "20"
+(define (meters->num str)
+  (regexp-replace #px"([0-9]+)(m|ｍ)" str
+                   (lambda (all-matching group-matching meter-matching)
                      group-matching)))
 
-(define (fw-kilo-meters->num str)
-  (regexp-replace* #px"([0-9]+)ｋｍ" str
-                   (lambda (all-matching group-matching)
+;; キロメートル表記をメートル換算し数字のみへ変換。
+;; "1km" -> "1000"
+;; "2ｋｍ" -> "2000"
+(define (kilo-meters->num str)
+  (regexp-replace #px"([0-9]+)(km|ｋｍ)" str
+                   (lambda (all-matching group-matching kilo-meter-matching)
                      (let ([n (string->number group-matching)])
                        (number->string (* n 1000))))))
 
-(define (strings->nestify-datums strs init-arg)
+;; 括弧表記をリストへ変換。
+;; "（左 前 右）" -> "(list 左 前 右)"
+;; "(左前 右前)" -> "(list 左前 右前)"
+(define (paren->list str)
+  (regexp-replace #px"(（|\\()(.*?)(）|\\))"
+                   str
+                   (lambda (all-matching  left-paren inner-text right-paren)
+                     (format "(list ~a)" inner-text))))
+
+;; 文字列リストを受け取り、文字列毎にネストが深くなる()の入れ子構造にする。
+;; 最もネストが深い部分（リストの先頭）にinit-argを付加する。
+;; (strings->nestify-datums '("a b" "c d e") "init")
+;; >'(c d e (a b init))
+(define (strings->nestify-datums strs init-str)
   (define (iter strs acc)
     (cond [(null? strs) acc]
           [(string=? (car strs) "") (iter (cdr strs) acc)]
-          [else (iter (cdr strs) (format-datum '(~a ~a) (car strs) acc))]
-          ))
-  ;; (printf "nestify ~a\ninit: ~a\n" strs init-arg)
-  (iter strs (string-append (car strs) init-arg)))
+          [else (iter (cdr strs) (format-datum '(~a ~a) (car strs) acc))]))
+  ;; (printf "nestify ~a\ninit: ~a\n" strs init-str)
+  (iter strs init-str))
 
-;; 変換関数を統合 ;;
+;; 変換関数を統合した関数
 (define (strings->nested-s-exp strs init-arg)
-  (strings->nestify-datums  (map fw-kilo-meters->num
-                                 (map fw-meters->num
-                                      (map fw->hw/number
-                                           (map fw->hw/space strs))))
-                            init-arg))
+  (strings->nestify-datums (map paren->list
+                                (map kilo-meters->num
+                                     (map meters->num
+                                          (map fw->hw/number
+                                               (map fw->hw/space strs)))))
+                           init-arg))

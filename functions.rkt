@@ -38,7 +38,7 @@
 (define MARGIN 50)
 
 
-;; ---- イメージ ---- ;;
+;; -- イメージ -- ;;
 (define CORNER-IMAGE
   (let ([octagon-side-length (* (+ ROAD-WIDTH FRAME-WIDTH) (- (sqrt 2) 1))])
     (overlay (regular-polygon octagon-side-length
@@ -51,7 +51,7 @@
                               ROAD-COLOR))))
 
 
-;; ---- 方向 ---- ;;
+;; -- 方向 -- ;;
 #|
 2つの用途で方向定数を使用する。
 仮引数名などで方向を扱う際はabsかrelかを明示する。
@@ -73,7 +73,7 @@ imageライブラリの関数に使用するときは
 (define RIGHT 270)
 (define FRONT-RIGHT 315)
 
-;; ---- リーダ用エイリアス定義・purovide ---- ;;
+;; -- リーダ用エイリアス定義・purovide -- ;;
 (define 前 FRONT)
 (define 左前 FRONT-LEFT)
 (define 左 LEFT)
@@ -118,7 +118,7 @@ map-image
 ;; 右向きで開始。empty-imageはimageライブラリ内の定数。
 (define INIT-STATE (set-state 0 0 0 empty-image))
 
-;; 各要素のセレクタ ;;
+;; 各要素のセレクタ
 (define (get-x state) (caaar state))
 (define (get-y state) (cdaar state))
 (define (get-abs-dir state) (cdar state))
@@ -331,7 +331,8 @@ map-image
 
 
 ;;==== 上級描画関数 ====;;
-;; ソースコードで書く関数。エイリアスの定義とprovideをする。
+;; ソースコードから変換される関数。
+;; エイリアス・シンタックスシュガーの定義とprovideを行う。
 
 ;; 直進
 (define (go-straight dist/m state)
@@ -363,24 +364,32 @@ map-image
     moved-state))
 
 
-;; ---- エイリアス定義・provide ---- ;;
+;; ---- エイリアス・シンタックスシュガー ---- ;;
 (define 直進 go-straight)
 (define 交差点 intersec-or-curve)
+(provide 直進
+         交差点)
+
+
 (define (カーブ travel-rel-dir state)
   (intersec-or-curve travel-rel-dir (list travel-rel-dir) state))
-
-(provide 直進
-         交差点
-         カーブ)
-
-;; シンタックスシュガーたち
 (define (T字路 travel-rel-dir state)
   (交差点 travel-rel-dir (list 左 右) state))
 (define (十字路 travel-rel-dir state)
   (交差点 travel-rel-dir (list 左 前 右) state))
 
-(provide T字路
+(provide カーブ
+         T字路
          十字路)
+
+
+
+
+;;==== リーダ内で追加する処理に必要な識別子 ====;;
+(provide save-image
+         get-map-image
+         INIT-STATE)
+
 
 
 
@@ -410,10 +419,3 @@ map-image
 (define (test);; まとめて評価。キモ地図が出力される。
   (values (test1) (test2) (test3) (test4) (test5) (test6) (test7) (test8) (test9)))
 
-
-
-
-;;==== リーダ内で追加する処理に必要な識別子 ====;;
-(provide save-image
-         get-map-image
-         INIT-STATE)
