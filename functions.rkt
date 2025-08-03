@@ -365,6 +365,15 @@ map-image
          交差点
          カーブ)
 
+;; シンタックスシュガーたち
+(define (T字路 travel-rel-dir state)
+  (交差点 travel-rel-dir (list 左 右) state))
+(define (十字路 travel-rel-dir state)
+  (交差点 travel-rel-dir (list 左 前 右) state))
+
+(provide T字路
+         十字路)
+
 
 
 ;;==== テスト ====;;
