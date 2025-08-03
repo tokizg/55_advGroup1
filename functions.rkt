@@ -330,7 +330,7 @@ map-image
 
 
 
-;;==== 上級描画関数 ====;;
+;;==== 高級描画関数 ====;;
 ;; ソースコードから変換される関数。
 ;; エイリアス・シンタックスシュガーの定義とprovideを行う。
 
@@ -346,7 +346,7 @@ map-image
            (lambda (rel-dir state)
              (draw-dir-road rel-dir INTERSEC-LENGTH state))
            state
-           branching-rel-dirs)]
+           (cons BACK branching-rel-dirs))]
          ;; 現在位置にコーナーを生成。
          [state-drawn-corner
           (draw-corner state-drawn-dirs-road)]
