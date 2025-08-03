@@ -1,4 +1,4 @@
 #lang reader "leadraw.rkt"
 
-直進　１００ｍ
-直進　１５０ｍ
+直進　５０ｍ
+十字路　左
