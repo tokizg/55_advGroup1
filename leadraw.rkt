@@ -4,13 +4,13 @@
 (define (read-syntax path port)
   (define src-lines (port->lines port))
   (define nested-s-exp-form-src
-    `(,@(strings->nested-s-exp src-lines "init-state")))
+    `(,@(strings->nested-s-exp src-lines "INIT-STATE")))
   (define module-datum `(module leadraw-mod br
                           (require "functions.rkt")
                           (define result-state ,nested-s-exp-form-src)
-                          (save-image (current-map-img result-state)
+                          (save-image (get-map-image result-state)
                                       "leadraw-out.png")
-                          (current-map-img result-state)))
+                          (get-map-image result-state)))
   ;; (printf "ソースコード: ~a\n" src-lines)
   ;; (printf "変換後(ソースに対応する部分のみ):\n~a\n" nested-s-exp-form-src)
   ;; (printf "module-datum: ~a" module-datum)
