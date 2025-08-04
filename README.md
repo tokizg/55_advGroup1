@@ -15,4 +15,4 @@ T字路　右
 ```
   - 実行結果
 
-<img width="257" height="200" alt="leadraw-out" src="https://github.com/user-attachments/assets/70b74907-64e3-4656-a3e0-3aaedfff9434" />
+<img width="257" height="200" alt="leadraw-out" src="https://github.com/user-attachments/assets/24c5a93e-51fd-4cec-b07d-22b096952041" />
