@@ -3,8 +3,10 @@
 Leadrawは道案内のための画像を描画するためのDSLです。
 日本語を使って直感的に記述することができます。
 
+ソースコードを実行するとディレクトリ内に"leadraw-out.png"という画像が生成されます。
+
 ## 使用例
-- ソースコード:
+ソースコード:
 ```racket
 #lang reader "leadraw.rkt"
 
@@ -13,6 +15,5 @@ T字路　右
 直進　１５ｍ
 カーブ　左
 ```
-  - 実行結果
-
-<img width="257" height="200" alt="leadraw-out" src="https://github.com/user-attachments/assets/24c5a93e-51fd-4cec-b07d-22b096952041" />
+実行結果:
+><img width="356" height="276" alt="leadraw-out" src="https://github.com/user-attachments/assets/96e523de-03cb-4026-9c13-6b291ddbddd6" />
