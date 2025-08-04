@@ -21,10 +21,10 @@
 (define ROAD-WIDTH 50)
 ;; 道の枠の幅
 (define FRAME-WIDTH 2)
-;; 交差点の各方向に伸ばす道の長さ
-(define INTERSEC-LENGTH ROAD-WIDTH)
 ;; 距離単位あたりの画素数
 (define METER 2)
+;; 交差点の各方向に伸ばす道の長さ(メートル)
+(define INTERSEC-LENGTH (/ (* (+ ROAD-WIDTH FRAME-WIDTH) 1.6) METER))
 ;; 余白の太さ
 (define MARGIN 50)
 
@@ -361,12 +361,15 @@ map-image
 ;; 交差点とカーブの描画について、この関数で統一的に扱うようにする。
 ;; 分岐方向を１つだけ指定すれば道を指定方向へのみ道を伸ばすためカーブの描画ができる。
 (define (intersec-or-curve travel-rel-dir branching-rel-dirs state)
-  (let* (;; 指定方向すべてに道を生成。
+  (let* (;; 交差点の中央へ移動。
+         [state-moved-intersec-center
+          (draw-dir-road FRONT INTERSEC-LENGTH state #:move-pointer? #t)]
+         ;; 指定方向すべてに道を生成。
          [state-drawn-dirs-road
           (foldl
            (lambda (rel-dir state)
              (draw-dir-road rel-dir INTERSEC-LENGTH state))
-           state
+           state-moved-intersec-center
            (cons BACK branching-rel-dirs))]
          ;; 現在位置にコーナーを生成。
          [state-drawn-corner
@@ -396,14 +399,12 @@ map-image
   (intersec-or-curve travel-rel-dir (list travel-rel-dir) state))
 (define (T字路 travel-rel-dir state)
   (交差点 travel-rel-dir (list 左 右) state))
-(define Ｔ字路 T字路)
 (define 丁字路 T字路)
 (define (十字路 travel-rel-dir state)
   (交差点 travel-rel-dir (list 左 前 右) state))
 
 (provide カーブ
          T字路
-         Ｔ字路
          丁字路
          十字路)
 

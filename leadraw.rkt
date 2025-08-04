@@ -42,11 +42,16 @@
                 (hash-ref fw-hw-digit-hash (string c) (lambda () (string c))))
               (string->list str))))
 
+;; 全角小数点から半角小数点へ変換
+;; "1．2" -> "1.2"
+(define  (fw->hw/decimal-point str)
+  (regexp-replace #px"．" str "."))
+
 ;; メートル表記を数字のみへ変換。
 ;; "10m" -> "10"
 ;; "20ｍ" -> "20"
 (define (meters->num str)
-  (regexp-replace #px"([0-9]+)(m|ｍ)" str
+  (regexp-replace #px"([0-9]+.[0-9]+)(m|ｍ|メートル)" str
                    (lambda (all-matching group-matching meter-matching)
                      group-matching)))
 
@@ -54,7 +59,7 @@
 ;; "1km" -> "1000"
 ;; "2ｋｍ" -> "2000"
 (define (kilo-meters->num str)
-  (regexp-replace #px"([0-9]+)(km|ｋｍ)" str
+  (regexp-replace #px"([0-9]+.[0-9]+)(km|ｋｍ|キロメートル)" str
                    (lambda (all-matching group-matching kilo-meter-matching)
                      (let ([n (string->number group-matching)])
                        (number->string (* n 1000))))))
@@ -85,6 +90,7 @@
   (strings->nestify-datums (map paren->list
                                 (map kilo-meters->num
                                      (map meters->num
-                                          (map fw->hw/number
-                                               (map fw->hw/space strs)))))
+                                          (map fw->hw/decimal-point
+                                               (map fw->hw/number
+                                                    (map fw->hw/space strs))))))
                            init-arg))
