@@ -95,7 +95,7 @@ rel：方向の相対的な変化量(relative)
 --------------------------------------------------------------
 ** state **
 そこまでの処理までのポインターとマップの状態。
-描画関数が連鎖的にこれを返す。
+描画関数が連鎖的にこれを返し、処理の途中状態を後の関数へ渡す。
 
 ** 構造 **
 (((x . y) . dir) . map-image)
@@ -336,11 +336,11 @@ map-image
              (first map-image-added-corner)))
 
 
-;; map-imageの外周に余白を追加
-(define (add-margin map-image)
-    (overlay map-image
-             (empty-scene (+ (image-width map-image) MARGIN)
-                          (+ (image-height map-image) MARGIN)
+;; imageの外周に余白を追加
+(define (add-margin image)
+    (overlay image
+             (empty-scene (+ (image-width image) MARGIN)
+                          (+ (image-height image) MARGIN)
                           BACKGROUND-COLOR)))
 
 
@@ -351,11 +351,15 @@ map-image
 ;; エイリアス・シンタックスシュガーの定義とprovideを行う。
 
 ;; 直進描画
-;; 指定距離分前方に道を描画し、その先へ移動する。
+;; 指定距離(メートル)分、前方に道を描画し、その先へ移動する。
 (define (go-straight dist/m state)
   (draw-dir-road FRONT dist/m state #:move-pointer? #t))
 
 ;; 交差点とカーブ描画
+;; 移動方向と分岐方向のリストを受け取り、
+;; 分岐方向へ道を描画し、移動方向へポインターを移動・方向転換させる。
+;; 交差点とカーブの描画について、この関数で統一的に扱うようにする。
+;; 分岐方向を１つだけ指定すれば道を指定方向へのみ道を伸ばすためカーブの描画ができる。
 (define (intersec-or-curve travel-rel-dir branching-rel-dirs state)
   (let* (;; 指定方向すべてに道を生成。
          [state-drawn-dirs-road
@@ -367,7 +371,7 @@ map-image
          ;; 現在位置にコーナーを生成。
          [state-drawn-corner
           (draw-corner state-drawn-dirs-road)]
-         ;; 進行方向を除いた指定方向に枠無し道を生成。
+         ;; 進行方向を除いた指定方向に枠無し道を生成し、余分な枠線を塗りつぶす。
          [state-drawn-filling-road
           (foldl
            (lambda (rel-dir state)
@@ -392,11 +396,15 @@ map-image
   (intersec-or-curve travel-rel-dir (list travel-rel-dir) state))
 (define (T字路 travel-rel-dir state)
   (交差点 travel-rel-dir (list 左 右) state))
+(define Ｔ字路 T字路)
+(define 丁字路 T字路)
 (define (十字路 travel-rel-dir state)
   (交差点 travel-rel-dir (list 左 前 右) state))
 
 (provide カーブ
          T字路
+         Ｔ字路
+         丁字路
          十字路)
 
 
