@@ -51,17 +51,17 @@
 ;; "10m" -> "10"
 ;; "20ｍ" -> "20"
 (define (meters->num str)
-  (regexp-replace #px"([0-9]+.[0-9]+)(m|ｍ|メートル)" str
-                   (lambda (all-matching group-matching meter-matching)
-                     group-matching)))
+  (regexp-replace #px"([0-9]+(.[0-9]+)?)(m|ｍ|メートル)" str
+                   (lambda (all-matching num decimal meter)
+                     num)))
 
 ;; キロメートル表記をメートル換算し数字のみへ変換。
 ;; "1km" -> "1000"
 ;; "2ｋｍ" -> "2000"
 (define (kilo-meters->num str)
-  (regexp-replace #px"([0-9]+.[0-9]+)(km|ｋｍ|キロメートル)" str
-                   (lambda (all-matching group-matching kilo-meter-matching)
-                     (let ([n (string->number group-matching)])
+  (regexp-replace #px"([0-9]+(.?[0-9]+)?)(km|ｋｍ|キロメートル)" str
+                   (lambda (all-matching num decimal kilo-meter)
+                     (let ([n (string->number num)])
                        (number->string (* n 1000))))))
 
 ;; 括弧表記をリストへ変換。
